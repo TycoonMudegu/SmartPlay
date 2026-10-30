@@ -1,0 +1,13 @@
+{
+  "note": "Synthetic provider responses for general film and episode selection. Release labels are deliberately unverified. No live media or copyrighted content is included.",
+  "runtimeMinutes": 120,
+  "streams": [
+    {"name":"Provider 4K","title":"Example Film 2160p HEVC 10bit DV E-AC-3 Atmos English\n👤 90 💾 8 GB","infoHash":"1111111111111111111111111111111111111111","fileIdx":0},
+    {"name":"Provider 4K","title":"Example Film 2160p AV1 10bit HDR10 AAC English\n👤 110 💾 6 GB","infoHash":"2222222222222222222222222222222222222222","fileIdx":0},
+    {"name":"Provider 1080p","title":"Example Film 1080p H.264 AAC English\n👤 200 💾 3 GB","infoHash":"3333333333333333333333333333333333333333","fileIdx":0,"sources":["tracker:udp://tracker.example:80"],"behaviorHints":{"filename":"Example.Film.1080p.H264.AAC.mp4","videoSize":3000000000}},
+    {"name":"Provider 720p","title":"Example Film 720p x264 AAC English\n👤 600 💾 1.2 GB","infoHash":"4444444444444444444444444444444444444444","fileIdx":0},
+    {"name":"Provider 1080p","title":"Example Film 1080p HEVC EAC3 English\n👤 300 💾 2 GB","infoHash":"5555555555555555555555555555555555555555","fileIdx":0},
+    {"name":"Provider 1080p","title":"Example Film 1080p H264 AAC REMUX\n👤 120 💾 12 GB","infoHash":"6666666666666666666666666666666666666666","fileIdx":0},
+    {"name":"Provider 1080p","title":"Example Film 1080p H264 AAC\n👤 0 💾 2 GB","infoHash":"7777777777777777777777777777777777777777","fileIdx":0}
+  ]
+}

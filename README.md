@@ -1,117 +1,137 @@
-# Smart Play v0.2
+# Smart Play v0.3
 
-A lightweight, stateless Stremio stream-selector add-on, with a web configuration page and source deployment support for Google Cloud Run. It ranks streams from approved Stremio source add-ons and returns **one** recommended stream when an eligible stream exists.
+One universal Stremio add-on installation. No household profiles, device settings, speed tests, accounts, AI services, debrid subscriptions or paid APIs are required. The Node.js service selects **one** stream when an eligible source exists; otherwise it returns an empty stream list.
 
-This release replaces the file-backed profiles in v0.1 with self-contained, compressed configuration URLs. **No Firestore, database, Dockerfile, AI account or debrid service is required.** Google Cloud nevertheless builds and runs a container internally.
+## Install
 
-## What's included
+After deploying this version to the existing Cloud Run service, install:
 
-- Web page with a 4K home cinema preset and an easy family viewing preset
-- Configurable bandwidth, TV resolution, minimum resolution, HDR support, sound system, language preference and optional file-size cap
-- Up to six server-approved source manifests
-- One automatically ranked stream per film or television episode
-- Source deduplication, bandwidth estimates and basic diagnostics
-- Browser-based preview from a saved Torrentio JSON export
-- Existing profile URL loader for editing configurations
-- Direct Google Cloud Run source deployment and optional GitHub repository deployment
-- No runtime third-party Node.js dependencies
+**https://smartplay-639901963666.africa-south1.run.app/manifest.json**
 
-## Set it up locally
+Paste that link into Stremio's Add-ons search field and select Install. Every family member uses the same link. Alternatively, open the service homepage and select **Open in Stremio**. Open a film or episode and choose **▶ Play** under Smart Play. Stremio controls the film-page Play button; an add-on cannot automatically start every film.
 
-Requires Node.js 20.11 or newer.
+Deployment status when this change was prepared: the production `/manifest.json` returned HTTP 404 and `/api/info` returned v0.2 profile defaults. The URL above becomes usable only after redeployment. The local implementation and automated tests do not establish production playback availability.
 
-```bash
+## Run locally
+
+Use Node.js 22 or 24. There are no runtime dependencies to install.
+
+```sh
 npm test
 npm start
 ```
 
-Open `http://localhost:8080` in a browser. This is for development. A TV on another network cannot connect to your computer's localhost address.
+Open `http://localhost:8080`. The local manifest is `http://localhost:8080/manifest.json`. A TV on another network cannot access your computer's localhost URL.
 
-## Deploy on Google Cloud Run without Docker
+From another terminal:
 
-1. Create or select a Google Cloud project with billing enabled.
-2. Open Google Cloud Shell at <https://console.cloud.google.com/>.
-3. Upload the `Smart Play Cloud Run.zip` archive to Cloud Shell using its Upload File control.
-4. Run the following commands:
+```sh
+npm run smoke -- http://localhost:8080
+# Optional live provider metadata check, without downloading media:
+npm run smoke -- http://localhost:8080 tt1254207
+```
+
+## How selection works
+
+- Query up to six server-configured HTTPS Stremio providers concurrently. Torrentio's public manifest is the default; viewers do not configure providers.
+- Discard invalid URLs, ambiguous playback targets and invalid torrent hashes or file indices. Keep different files in a torrent distinct. Series torrents must specify the episode's file index.
+- Deduplicate identical playback targets, combine tracker discovery, and use conservative values when duplicate metadata conflicts.
+- Treat format labels and provider hints as **unverified claims**. Filter labels associated with unsupported formats, HDR, camera recordings and 3D. Never claim a filename proves the actual media tracks.
+- Without confirmed capabilities, use a compatibility policy of at most 1080p, H.264, SDR, AAC/MP3, up to 8-bit and 30fps when those properties are labeled. HEVC, AV1, HDR and advanced audio labels are excluded. Missing labels incur ranking penalties and remain an uncertain last resort.
+- Estimate average bitrate as `bytes × 8 / runtimeSeconds / 1,000,000`. GB and GiB are distinct. Cinemeta runtime is used where available; missing runtime falls back to 90 minutes for films and 30 for episodes. Series runtime may itself be an estimate.
+- With unknown bandwidth, use a **5 Mbps average bitrate policy**, with ceilings of 8 GB per film and 2 GB per episode. These are policy limits, not a measurement or promise about the viewer's connection. Unknown sizes receive a substantial penalty.
+- Prefer higher resolution within these constraints, adequate reported seeders and smaller files of otherwise similar quality. Zero reported seeders are rejected; very few seeders receive a strong penalty. Neither a seed count nor an HTTP URL proves reachability or sustained speed.
+- Preserve playback URLs, torrent file indices, tracker sources, proxy headers, subtitle hints and subtitles. A stable Smart Play binge group supports clients' next-episode selection.
+
+The ranking engine accepts explicit capability/network context for simulations or a future verified integration. **The public stream routes never populate that context from User-Agent, guessed hardware, IP addresses, invented headers or arbitrary URL extras.** A known simulated decoder can select HEVC/AV1/4K; that does not claim stock Stremio sends these capabilities. Supplied throughput uses 60% of its value as an average bitrate budget, reduced to 40% for an explicitly unstable simulated link.
+
+Read the [technical investigation](docs/automatic-selection.md) for client source references and detection limitations.
+
+## Deploy to the existing Cloud Run service
+
+Use Google Cloud Shell, or a terminal with authenticated `gcloud`. Work from this source directory. The service name is **smartplay**, in **africa-south1**. Deploying a differently named service creates a different installation URL.
+
+In Cloud Shell (Bash), find and select the project associated with the existing service:
 
 ```bash
-unzip 'Smart Play Cloud Run.zip' -d smart-play
-cd smart-play
+PROJECT_ID="$(gcloud projects describe 639901963666 --format='value(projectId)')"
+gcloud config set project "$PROJECT_ID"
+gcloud run services describe smartplay --region africa-south1 --format='value(status.url)'
+```
+
+Confirm the printed service URL is the existing Smart Play service. Then deploy these updated local sources, either by uploading them to Cloud Shell or by pushing this version to GitHub and pulling it there. Run tests before deploying:
+
+```bash
 npm test
-gcloud run deploy smart-play --source . --region africa-south1 --allow-unauthenticated --min-instances 0 --max-instances 2 --memory 256Mi
+gcloud run deploy smartplay --source . --region africa-south1 --allow-unauthenticated --min-instances 0 --max-instances 2 --memory 256Mi --port 8080 --timeout 30
+npm run smoke -- https://smartplay-639901963666.africa-south1.run.app
 ```
 
-Respond to the prompts to enable the necessary Google APIs and set the project. The first deployment uses Google Cloud Build and buildpacks to turn source code into a container, automatically. You do **not** need Docker, a Dockerfile or a separately managed server. You may incur Google Cloud costs even at low volume.
+If updating through an existing GitHub continuous-deployment connection, use the same service, branch and Node.js buildpacks build type. `npm start` listens on `0.0.0.0` and Cloud Run's `PORT`. No Dockerfile or database is needed. Google builds a container internally and may charge for builds, storage, logs and network use. See [Google's source deployment instructions](https://docs.cloud.google.com/run/docs/deploying-source-code).
 
-The command prints a service URL such as `https://smart-play-xxxxx.run.app`. **The example is not a deployed endpoint.** Open the actual URL assigned to your service.
+Test a film and an episode from each actual Stremio client after deployment. A metadata smoke test validates the add-on contract; it does not decode media, test HDMI audio, or establish torrent connectivity from the viewer's network.
 
-### Deploy from a GitHub repository instead
+## Operator settings (optional)
 
-You can put these files at the root of a GitHub repository, then open **Google Cloud Run > Connect repository**. Select your repository and branch. Set the build type to **Node.js via Google Cloud's buildpacks** (not Dockerfile). The service must allow unauthenticated requests because Stremio accesses the manifest URL without Google Cloud authentication. Cloud Run can automatically redeploy on each new commit. The `npm start` script binds to `0.0.0.0` on the `PORT` provided by Cloud Run.
+| Variable | Purpose |
+| --- | --- |
+| `PORT` | Cloud Run sets this automatically; defaults to 8080 locally. |
+| `ALLOWED_ADDON_HOSTS` | Comma-separated exact approved provider hostnames. Default: `torrentio.strem.fun`. Only add trusted public hosts. Redirects are checked too. |
+| `SOURCE_MANIFEST_URLS` | JSON array of one to six approved HTTPS manifest URLs, shared by all viewers. Default: `["https://torrentio.strem.fun/manifest.json"]`. |
+| `LOG_REQUEST_HEADERS` | Set to `1` temporarily to inspect an allowlist of incoming headers. No capability detection is enabled by this flag. |
+| `PUBLIC_BASE_URL` | Optional canonical origin used only when generating legacy profile URLs. |
 
-References:
-- <https://docs.cloud.google.com/run/docs/deploying-source-code>
-- <https://docs.cloud.google.com/run/docs/continuous-deployment>
+Provider URLs can contain commas; use a JSON array, not a comma-separated URL list. For Cloud Run, put settings in an environment YAML file to avoid shell escaping:
 
-## Install in Stremio
-
-1. Open the Cloud Run service URL in your browser.
-2. Choose a household profile and set its internet speed, display resolution, HDR and audio system.
-3. Check the source manifest URL and generate the Smart Play installation link.
-4. Copy the complete manifest URL (it ends in `/manifest.json`).
-5. Open **Stremio > Add-ons** and paste the URL into the add-on installation field. You can also try the **Open in Stremio** button in the web configurator.
-6. Remove directly installed source stream add-ons from the viewer's Stremio account if you want to avoid seeing their additional results. Smart Play's backend uses its own configured source URLs.
-
-A typical link resembles:
-
-```
-https://your-actual-cloud-run-host.run.app/p/COMPRESSED-PROFILE/manifest.json
+```yaml
+ALLOWED_ADDON_HOSTS: "torrentio.strem.fun"
+SOURCE_MANIFEST_URLS: '["https://torrentio.strem.fun/manifest.json"]'
+LOG_REQUEST_HEADERS: "0"
 ```
 
-The entire profile is inside `COMPRESSED-PROFILE`. Stremio keeps the installed add-on URL in its account configuration. The Cloud Run app reads the URL whenever Stremio requests new streams. It needs to be available when a new title or episode is selected, but a compatible direct torrent or video source can continue playing without routing the film through Cloud Run.
+Pass that file with `--env-vars-file` if desired, taking care to include any existing variables that must be retained. Do not place provider credentials in a public configuration URL. Providers requiring subscriptions, NZB servers or archive extraction are outside this selector's supported playback targets.
 
-## Edit a TV's settings
+## Inspect actual client requests
 
-Paste the original Smart Play manifest URL into **Edit an existing profile** on the configurator, load the settings, adjust them and generate a **new** installation URL. You must replace the previous installation in Stremio. There is no database record or permanent edit link.
+Temporarily enable observation on the existing service:
 
-**Configuration URLs are not private or encrypted.** Do not enter debrid keys, source-provider tokens, passwords or confidential data. Restrict the allowed stream-provider hosts and only use media sources you are entitled to access.
+```bash
+gcloud run services update smartplay --region africa-south1 --update-env-vars LOG_REQUEST_HEADERS=1
+```
 
-## Cloud Run environment settings
+Install the universal manifest in Android TV, desktop and web, then open a film and an episode on each device. Read the resulting structured logs:
 
-- `PORT`: Cloud Run automatically sets the listening port, normally 8080.
-- `ALLOWED_ADDON_HOSTS`: Comma-separated approved HTTPS provider hostnames. Defaults to `torrentio.strem.fun`. Add only hosts you trust. Never open this to arbitrary user-provided hosts.
-- `PUBLIC_BASE_URL`: Optional fully qualified canonical origin for generated server-side links, if your proxy requires it. The browser configurator uses its actual origin.
+```bash
+gcloud logging read 'resource.type="cloud_run_revision" AND resource.labels.service_name="smartplay" AND jsonPayload.kind="smartplay.request"' --freshness=30m --limit=50 --format=json
+gcloud run services update smartplay --region africa-south1 --update-env-vars LOG_REQUEST_HEADERS=0
+```
 
-This application stores no profile configuration on disk. It has a temporary per-instance in-memory results cache. Cloud Run can therefore scale to zero without losing profile settings.
+Observation logs include User-Agent, Accept, Origin, selected client hints if present, and the **names** of `X-Stremio-*` headers. They omit IP addresses, authorization, cookies, full request URLs, query strings and profile tokens. User-Agent can itself contain a device model. No per-device record is stored. Cloud Run's own request logging has its own retention and fields; see [Cloud Run logging](https://docs.cloud.google.com/run/docs/logging).
 
-## Design constraints
+Actual production client captures were not available during local development: this workstation had no `gcloud` installation or connected Cloud Run log access, and no running Stremio client. Automated tests exercise observation using controlled Node HTTP requests, clearly identified as such.
 
-- **Not a custom player:** Stremio may still require clicking the one returned stream. The add-on cannot replace Stremio's film-page Play button or switch sources after playback fails.
-- **Configured device capabilities:** Ordinary Stremio add-ons do not learn TV resolution, Atmos support or real-time connection speed automatically. Those values are configured manually.
-- **Metadata heuristics:** Filename descriptions, peer counts and file sizes are not verified. Dolby Atmos is a preference, not an absolute requirement. The audio path must separately support the stream's audio track.
-- **Network uncertainty:** Average bitrate is estimated from file size and film duration. Actual torrent speed varies with peers and bitrate peaks. A fast enough nominal connection does not guarantee uninterrupted playback.
-- **No results if nothing qualifies:** A strict 4K profile can return zero streams even when 1080p results exist.
-- **Provider dependency:** A source provider can rate-limit, fail, block Cloud Run egress or change its API. Smart Play does not make a provider more reliable.
-- **Cloud costs:** Cloud Run scale-to-zero does not guarantee the total Google Cloud bill is zero. Cloud Build, Artifact Registry, network use and other services can incur charges.
-- **Compatibility:** Supports Stremio movie and series streams with `tt`-prefixed IMDb IDs. Other metadata identifiers are not supported in this version.
+## API and compatibility
 
-## API endpoints
+| Endpoint | Result |
+| --- | --- |
+| `GET /manifest.json` | Universal public Stremio manifest; configuration is not required. |
+| `GET /stream/movie/{imdbId}.json` | One selected stream, or `streams: []`. |
+| `GET /stream/series/{imdbId}:{season}:{episode}.json` | One selected episode stream, or `streams: []`. URL-encoded colons also work. |
+| `GET /`, `/configure` | Installation page. |
+| `GET /healthz`, `/api/info` | Local health / version and honest detection status. |
+| `POST /api/preview` | Rank supplied JSON: `{ "streams": [...], "runtimeMinutes": 120, "type": "movie" }`. No profile needed. |
+| `POST /api/test` | Query configured providers: `{ "id": "tt1254207", "type": "movie" }`. No profile needed. |
 
-- `GET /` or `GET /configure` web configurator
-- `GET /api/info` default settings and allowed provider hosts
-- `POST /api/config` validates and encodes profile data without saving it
-- `GET /api/profile/{token}` decodes profile data for editing
-- `POST /api/preview` ranks user-supplied stream JSON
-- `POST /api/test` tests live provider results for a given IMDb ID
-- `GET /p/{token}/manifest.json` Stremio add-on manifest
-- `GET /p/{token}/stream/movie/{imdbId}.json` one ranked film stream
-- `GET /p/{token}/stream/series/{imdbId}:{season}:{episode}.json` one ranked episode stream
-- `GET /healthz` health check
+The old `/p/{token}/manifest.json`, stream routes, `/api/config` and `/api/profile/{token}` remain for migration, with stricter compatibility ranking. They are optional and are no longer presented in the installation UI. Install the universal URL and remove the old profile installation to avoid duplicate Smart Play results. Directly installed provider add-ons can also contribute their own additional streams.
+
+Caches contain only temporary upstream results per instance, with bounded size and short stream lifetimes. There is no persistent viewer state. Cold starts or scaling to zero lose no required information.
+
+## Limits
+
+A universal installation URL does not mean all devices support all media. Current add-on requests expose no confirmed display, codec, HDR, HDMI audio or viewer bandwidth information. Browser-only Stremio may need a connected Stremio streaming service for torrents and non-web-ready files. Selecting a stream cannot add a decoder, provide a missing local torrent engine, force another audio track, transcode media, or automatically switch a running player after failure.
+
+Exactly one guaranteed playable stream for every title, best possible quality for every unknown device, and automatic viewer-speed adaptation cannot be guaranteed by this backend. Ineligible, unavailable or unsupported-only results correctly produce zero streams. See the [report](docs/automatic-selection.md) for what requires client changes.
 
 ## Tests
 
-```bash
-npm test
-```
-
-The automated suite tests profiles, validation, manifest and stream URLs, selection ranking, API endpoints and mocked provider responses. External providers are not used during unit tests. Confirm actual connectivity to your chosen providers after deploying to Cloud Run.
+`npm test` runs deterministic ranking and local HTTP integration tests. General synthetic film and episode fixtures cover simulated codecs/HDR/audio, resolutions, connection speeds and stability, provider outages, weak sources, duplicate metadata, invalid targets, incomplete metadata, universal installation, CORS, encoded series requests, caching and opt-in header observation. No paid service or live provider is used in automated tests.

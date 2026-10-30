@@ -1,13 +1,14 @@
 {
   "name": "smart-play-stremio",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
-  "description": "Stateless Stremio stream selector with a browser configurator, ready for Google Cloud Run.",
-  "engines": {"node": ">=20.11 <25"},
+  "description": "Zero-configuration Stremio stream selector for Google Cloud Run.",
+  "engines": {"node": ">=22 <25"},
   "scripts": {
     "start": "node src/server.js",
-    "test": "node --test tests/*.test.js"
+    "test": "node --test tests/*.test.js",
+    "smoke": "node scripts/smoke-test.js"
   },
   "license": "MIT"
 }
