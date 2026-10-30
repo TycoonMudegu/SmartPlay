@@ -2,6 +2,7 @@ const manifestUrl = `${location.origin}/manifest.json`;
 const field = document.getElementById('manifest-url');
 field.value = manifestUrl;
 document.getElementById('install-link').href = manifestUrl.replace(/^https?:\/\//, 'stremio://');
+document.getElementById('web-install-link').href = `https://web.stremio.com/#/addons?addon=${encodeURIComponent(manifestUrl)}`;
 document.getElementById('copy-link').addEventListener('click', async () => {
   const status = document.getElementById('copy-status');
   try {

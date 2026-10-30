@@ -8,7 +8,7 @@ Install the universal manifest:
 
 **https://smartplay-639901963666.africa-south1.run.app/manifest.json**
 
-Paste that link into Stremio's Add-ons search field and select Install. Every family member uses the same link. Alternatively, open the service homepage and select **Open in Stremio**. Open a film or episode and choose **▶ Play** under Smart Play. Stremio controls the film-page Play button; an add-on cannot automatically start every film.
+Paste that link into Stremio's Add-ons search field and select Install. Every family member uses the same link. Alternatively, open the service homepage and select **Open in Stremio** for the installed app or **Open in Stremio Web** for the browser client. Open a film or episode and choose **▶ Play** under Smart Play. Stremio controls the film-page Play button; an add-on cannot automatically start every film.
 
 Live verification on 30 October 2026: the production manifest returns HTTP 200 with version 0.3.0, browser preflight succeeds, and a live film metadata request returns one structurally valid stream. GitHub changes trigger deployment to the existing service. See the [validation results](docs/validation.md). Actual media playback and per-device compatibility remain separate checks.
 
@@ -22,6 +22,8 @@ npm start
 ```
 
 Open `http://localhost:8080`. The local manifest is `http://localhost:8080/manifest.json`. A TV on another network cannot access your computer's localhost URL.
+
+If Windows PowerShell blocks `npm.ps1`, use `npm.cmd test` and `npm.cmd start`.
 
 From another terminal:
 
@@ -79,7 +81,7 @@ Test a film and an episode from each actual Stremio client after deployment. A m
 | `ALLOWED_ADDON_HOSTS` | Comma-separated exact approved provider hostnames. Default: `torrentio.strem.fun`. Only add trusted public hosts. Redirects are checked too. |
 | `SOURCE_MANIFEST_URLS` | JSON array of one to six approved HTTPS manifest URLs, shared by all viewers. Default: `["https://torrentio.strem.fun/manifest.json"]`. |
 | `LOG_REQUEST_HEADERS` | Set to `1` temporarily to inspect an allowlist of incoming headers. No capability detection is enabled by this flag. |
-| `PUBLIC_BASE_URL` | Optional canonical origin used only when generating legacy profile URLs. |
+| `PUBLIC_BASE_URL` | Optional canonical origin used for manifest artwork and legacy profile URLs. |
 
 Provider URLs can contain commas; use a JSON array, not a comma-separated URL list. For Cloud Run, put settings in an environment YAML file to avoid shell escaping:
 

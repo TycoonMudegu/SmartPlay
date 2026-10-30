@@ -20,6 +20,8 @@ function json(res, status, value, maxAge=0) {
   res.end(JSON.stringify(value));
 }
 const error = (res,status,message) => json(res,status,{error:message});
+const publicBaseUrl = req => String(process.env.PUBLIC_BASE_URL || new URL(req.headers.host ?
+  `${req.headers['x-forwarded-proto']==='https'?'https':'http'}://${req.headers.host}` : 'http://localhost').origin).replace(/\/$/,'');
 function rateLimit(req, requests) {
   const now = Date.now();
   const ip = String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown').split(',')[0];
@@ -119,11 +121,12 @@ async function collect(fetchFn, cache, config, type, id) {
     errors:outcome.flatMap((v,i) => v.status === 'rejected' ? [`${new URL(config.sources[i]).hostname}: ${v.reason?.message || 'Unavailable'}`] : [])
   };
 }
-function manifest(token, config=defaultConfig()) {
+function manifest(baseUrl, token, config=defaultConfig()) {
   return {
     id:token ? 'com.smartplay.family.' + profileId(token) : 'com.smartplay.universal',
     version:VERSION,
     name:token ? 'Smart Play · ' + config.name : 'Smart Play',
+    logo:`${baseUrl}/logo.png`,
     description:'One automatically selected stream for films and episodes. Install and play; no setup required.',
     resources:[{name:'stream',types:['movie','series'],idPrefixes:['tt']}],
     types:['movie','series'], idPrefixes:['tt'], catalogs:[],
@@ -185,15 +188,17 @@ export function createServer({fetchFn=fetch, config=serverConfig(), logHeaders=p
       if (req.method === 'GET' && (pathname==='/' || pathname==='/configure')) return staticFile(res,'index.html','text/html; charset=utf-8');
       if (req.method === 'GET' && pathname==='/app.js') return staticFile(res,'app.js','text/javascript; charset=utf-8');
       if (req.method === 'GET' && pathname==='/styles.css') return staticFile(res,'styles.css','text/css; charset=utf-8');
+      if (req.method === 'GET' && pathname==='/logo.svg') return staticFile(res,'logo.svg','image/svg+xml');
+      if (req.method === 'GET' && pathname==='/logo.png') return staticFile(res,'logo.png','image/png');
       if (req.method === 'GET' && pathname==='/healthz') return json(res,200,{status:'ok',version:VERSION});
-      if (req.method === 'GET' && pathname==='/manifest.json') return json(res,200,manifest(),300);
+      if (req.method === 'GET' && pathname==='/manifest.json') return json(res,200,manifest(publicBaseUrl(req)),300);
       if (req.method === 'GET' && pathname==='/api/info') return json(res,200,{version:VERSION,universalManifest:'/manifest.json',stateless:true,
         detection:{capabilities:false,bandwidth:false},selection:{maxResolution:1080,averageBitrateBudgetMbps:5,bandwidthMeasured:false}});
       if (req.method === 'POST' && pathname==='/api/config') {
         if (!rateLimit(req,requests)) return error(res,429,'Too many requests');
         const config = validateProfile((await body(req)).config);
         const token = encodeProfile(config);
-        const base = String(process.env.PUBLIC_BASE_URL || new URL(req.headers.host ? `${req.headers['x-forwarded-proto']==='https'?'https':'http'}://${req.headers.host}` : 'http://localhost').origin).replace(/\/$/,'');
+        const base = publicBaseUrl(req);
         return json(res,200,{token,manifestUrl:`${base}/p/${token}/manifest.json`,config});
       }
       if (req.method === 'POST' && pathname==='/api/preview') {
@@ -222,7 +227,7 @@ export function createServer({fetchFn=fetch, config=serverConfig(), logHeaders=p
       const m = pathname.match(/^\/p\/([A-Za-z0-9_-]{10,3400})\/manifest\.json$/);
       if (req.method === 'GET' && m) {
         const config=decodeProfile(m[1]);
-        return json(res,200,manifest(m[1],config),300);
+        return json(res,200,manifest(publicBaseUrl(req),m[1],config),300);
       }
       const s = pathname.match(/^(?:\/p\/([A-Za-z0-9_-]{10,3400}))?\/stream\/(movie|series)\/([^/]+?)(?:\/[^/]+)?\.json$/);
       if (req.method === 'GET' && s) {

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 512 512" fill="none" role="img" aria-labelledby="title description">
+  <title id="title">Smart Play</title>
+  <desc id="description">A mint and blue play button with an S cutout and a four-point spark on a rounded midnight blue tile.</desc>
+  <defs>
+    <linearGradient id="tile" x1="48" y1="32" x2="464" y2="480" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#18283F"/>
+      <stop offset="1" stop-color="#0A101D"/>
+    </linearGradient>
+    <linearGradient id="play" x1="150" y1="140" x2="358" y2="368" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#95F0D5"/>
+      <stop offset=".55" stop-color="#91B8FF"/>
+      <stop offset="1" stop-color="#B4A1FF"/>
+    </linearGradient>
+    <mask id="monogram" maskUnits="userSpaceOnUse" x="132" y="116" width="260" height="280">
+      <path d="M179 133C166 125 149 134 149 150V362C149 378 166 387 179 379L367 274C381 266 381 246 367 238L179 133Z" fill="white"/>
+      <path d="M280 204H222C205 204 196 215 201 229C204 237 213 241 227 245L256 253C278 259 285 270 278 284C273 294 263 299 248 299H204" stroke="black" stroke-width="24" stroke-linecap="round"/>
+    </mask>
+  </defs>
+  <rect x="17" y="17" width="478" height="478" rx="112" fill="url(#tile)" stroke="#30415B" stroke-width="2"/>
+  <path d="M179 133C166 125 149 134 149 150V362C149 378 166 387 179 379L367 274C381 266 381 246 367 238L179 133Z" fill="url(#play)" mask="url(#monogram)"/>
+  <path d="M369 111L380 140L409 151L380 162L369 191L358 162L329 151L358 140L369 111Z" fill="#A6EDDD"/>
+</svg>

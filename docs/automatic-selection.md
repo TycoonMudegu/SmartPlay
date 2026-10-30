@@ -51,7 +51,17 @@ There is a separate, newer [player event design](https://github.com/Stremio/stre
 
 There is no confirmed standard path for a stream add-on to run a viewer-side speed test or receive player throughput before returning a stream. A Cloud Run download test measures **Cloud Run's** network. An installation-page speed test measures that browser at that moment, can be on a different device/network, and introduces a separate interaction. Fetching or probing a candidate URL from Cloud Run likewise cannot establish viewer throughput.
 
-The implementation therefore uses a 5 Mbps **average bitrate ceiling**, a 1080p compatibility ceiling and modest file-size limits when nothing is known. These are explicit engineering defaults, not inferred capabilities. Bitrate estimates use runtime and file size and leave uncertainty about VBR peaks, competing traffic, Wi-Fi quality and source supply. Missing metadata is penalized. A lower-bandwidth viewer may still buffer; a capable fast viewer may receive less than their maximum quality. Those are unavoidable tradeoffs without client negotiation.
+The implementation therefore uses a 5 Mbps **average bitrate ceiling**, a 1080p compatibility ceiling and modest file-size limits when nothing is known. These are explicit engineering defaults, not inferred capabilities. Bitrate estimates use runtime and file size and leave uncertainty about VBR peaks, competing traffic, Wi-Fi quality and source supply. Missing metadata is penalized. A lower-bandwidth viewer may still buffer; a capable fast viewer may receive less than their maximum quality. Those are unavoidable tradeoffs for this fixed-file selection approach without client negotiation.
+
+## Universal playback through adaptive HTTP streams
+
+The user clarified that one add-on must serve many TVs and browsers without device-specific setup. A custom TV client is not the only possible approach to bandwidth adaptation: a shared HLS multivariant URL can let a supported player choose among coordinated quality versions locally. This does not send a device capability report or bandwidth measurement back to Smart Play.
+
+Apple's [HLS authoring specification](https://developer.apple.com/streaming/hls-authoring-specification-for-apple-devices.html) describes multiple bitrate variants with codec and resolution attributes. The [Stremio HTML video implementation](https://github.com/Stremio/stremio-video/blob/master/src/HTMLVideo/HTMLVideo.js) inspected on 30 October 2026 loads HLS through Hls.js where supported, with a native video fallback. Its [HLS configuration](https://github.com/Stremio/stremio-video/blob/master/src/HTMLVideo/hlsConfig.js) does not force a single quality level. These source findings justify an experiment; they do not establish playback or adaptation on every deployed TV/browser client.
+
+The current path selects one torrent/file and does not create aligned adaptive versions. An upstream provider would need to supply them, or a separate encoding and delivery service would need to generate and serve them, adding compute, storage and network costs. Merely wrapping a torrent URL in an `.m3u8` playlist does not create adaptive quality. The current selector also marks non-MP4 URLs as `notWebReady`; an HLS integration would need validated handling of that hint, compatible codecs, HTTPS delivery and browser CORS.
+
+The next validation step for this option is a small experiment with an authorized, pre-encoded multivariant test video: verify actual playback and quality changes under network throttling in Stremio Web, then representative TV clients. Retain a broadly compatible SDR/audio path; do not assume HLS guarantees correct 4K, HDR or HDMI audio selection on every client. No adaptive playback feature or transcoding service has been implemented or deployed.
 
 ## HTTP inspection and validation boundary
 
@@ -65,6 +75,6 @@ A subsequent follow-up used the official Stremio Web client in a fresh isolated 
 
 - Send a versioned capability report for the active player: resolution/frame-rate/codec profile and bit-depth limits, HDR profiles, and current audio route/decoding/passthrough support. Re-evaluate it when the display, output route or external player changes.
 - Send fresh viewer-side throughput and buffering/error telemetry, with privacy-preserving per-session correlation if feedback should influence later requests. Local streaming-server statistics alone need an explicit supported reporting channel.
-- Support requesting an alternative after a failed stream, or negotiating adaptive alternatives. A stateless add-on that returned one target cannot switch a client already playing it.
+- For fixed-file/torrent targets, support requesting another add-on source after a playback failure. A stateless add-on that returned one target cannot switch a client already playing it. A player adapting within an existing HLS stream is a separate mechanism, described above.
 
-Until those exist, Smart Play can return one **likely suitable** target or an empty list. It cannot guarantee a playable stream for every title/device/network, infer actual codecs from labels, add missing browser torrent support, or achieve each unknown device's maximum quality.
+For the current torrent/file selector, Smart Play can return one **likely suitable** target or an empty list. It cannot guarantee a playable stream for every title/device/network, infer actual codecs from labels, add missing browser torrent support, or achieve each unknown device's maximum quality.

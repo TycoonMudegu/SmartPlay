@@ -3,7 +3,7 @@
 body { margin: 0; background: radial-gradient(ellipse at top right, #20334a 0, transparent 55%); }
 main { max-width: 760px; padding: 36px 24px; margin: auto; }
 .brand { display: inline-flex; align-items: center; gap: 12px; font-size: 21px; font-weight: 750; color: inherit; text-decoration: none; margin-bottom: 60px; }
-.brand span { display: grid; place-items: center; background: #91b8ff; color: #0a1426; width: 40px; height: 40px; border-radius: 12px; }
+.brand img { display: block; width: 44px; height: 44px; }
 .eyebrow { font-size: 12px; letter-spacing: .16em; color: #a2beee; font-weight: 700; }
 h1 { font-size: clamp(42px, 8vw, 70px); line-height: 1.08; letter-spacing: -.05em; margin: 16px 0 24px; }
 .intro { font-size: 19px; max-width: 580px; color: #b7c6dc; margin-bottom: 36px; }
@@ -14,9 +14,9 @@ p { margin: 0 0 16px; }
 label { display: block; font-size: 13px; margin-top: 24px; margin-bottom: 8px; }
 input { width: 100%; padding: 14px; color: #d3e2fd; background: #0b1422; border: 1px solid #49607e; border-radius: 10px; font: inherit; font-size: 14px; }
 .actions { display: flex; flex-wrap: wrap; gap: 12px; margin: 20px 0; }
-.primary, button { padding: 12px 20px; border-radius: 10px; font: inherit; font-weight: 700; font-size: 14px; cursor: pointer; text-decoration: none; }
+.primary, .secondary, button { padding: 12px 20px; border-radius: 10px; font: inherit; font-weight: 700; font-size: 14px; cursor: pointer; text-decoration: none; }
 .primary { background: #91b8ff; color: #0a1426; border: 1px solid #91b8ff; }
-button { background: #1b2d46; color: #e2ecff; border: 1px solid #49607e; }
+.secondary, button { background: #1b2d46; color: #e2ecff; border: 1px solid #49607e; }
 :focus-visible { outline: 3px solid #bdd5ff; outline-offset: 4px; }
 .hint, #copy-status { font-size: 13px; color: #a6b6cc; }
 #copy-status:empty { display: none; }
