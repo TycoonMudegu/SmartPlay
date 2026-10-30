@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="Set up one carefully selected playback option in Stremio without maintaining a configuration database.">
+  <title>Smart Play | Stremio configuration</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<header class="shell top">
+  <div class="brand"><span class="brandmark" aria-hidden="true">▶</span><span>Smart Play <small>STREMIO STREAM SELECTOR</small></span></div>
+  <span class="tag">v0.2 · Cloud Run ready</span>
+</header>
+<main class="shell">
+  <section class="hero">
+    <div class="eyebrow">SIMPLE FAMILY STREAMING</div>
+    <h1>One film.<br>One Play option.</h1>
+    <p>Configure a television once. Smart Play compares available stream listings, checks their estimated bandwidth needs and returns one recommended choice to Stremio.</p>
+    <div class="notice"><strong>No account, database or AI key needed.</strong> Your settings are encoded in the installation link. The add-on still needs to be hosted and Stremio may require you to select the single recommended stream.</div>
+  </section>
+  <div id="alert" class="alert" role="status" aria-live="polite" hidden></div>
+  <div class="layout">
+    <form id="settings" class="panel" autocomplete="off">
+      <h2>1. Choose the viewing setup</h2>
+      <p class="muted">Choose a starting profile, then adjust settings for each TV.</p>
+      <div class="actions" style="margin:0 0 16px">
+        <button class="secondary" id="cinemaPreset" type="button">My 4K home cinema</button>
+        <button class="secondary" id="easyPreset" type="button">Easy family viewing</button>
+      </div>
+      <label>Household name<input id="name" maxlength="60" required placeholder="Grandma's television"></label>
+      <div class="columns">
+        <label>Available internet speed <div class="input-suffix"><input id="internetMbps" type="number" min="1" max="1000" step="0.5" value="15" required><span>Mbps</span></div></label>
+        <label>Television resolution<select id="tvResolution"><option value="720">HD · 720p</option><option value="1080">Full HD · 1080p</option><option value="2160">4K · 2160p</option></select></label>
+      </div>
+      <div class="columns">
+        <label>Minimum acceptable resolution<select id="minimumResolution"><option value="0">No minimum · prioritise reliability</option><option value="720">At least 720p</option><option value="1080">At least 1080p</option><option value="2160">4K only</option></select></label>
+        <label>TV HDR support<select id="hdr"><option value="none">No HDR</option><option value="hdr10">HDR10</option><option value="hdr10plus">HDR10+</option><option value="dolbyvision">Dolby Vision</option></select></label>
+      </div>
+      <div class="columns">
+        <label>Audio equipment<select id="audio"><option value="stereo">TV speakers / stereo</option><option value="surround">5.1 surround</option><option value="atmos">Dolby Atmos system</option></select></label>
+        <label>Audio language<select id="preferredLanguage"><option value="en">Prefer English when identified</option><option value="any">Any / unspecified</option></select></label>
+      </div>
+      <div class="columns">
+        <label>Maximum file size (GB)<input id="maxFileGB" type="number" min="0" max="200" step="0.5" value="0"></label>
+        <div class="field-hint">Use 0 for no fixed size limit. Smart Play will still reject files whose estimated average bitrate exceeds your connection budget.</div>
+      </div>
+      <label class="check"><input id="conservative" type="checkbox" checked><span><strong>Prefer reliable playback</strong><small>Reserve approximately 28% of your configured bandwidth for interruptions and peaks.</small></span></label>
+      <hr>
+      <h2>2. Stream sources</h2>
+      <p class="muted">Enter the manifest URLs of your stream-provider add-ons, one per line. The host must be approved by the server administrator.</p>
+      <label>Source manifest URLs<textarea id="sources" spellcheck="false" rows="4" required></textarea></label>
+      <p id="allowedHosts" class="hint">Checking approved hosts…</p>
+      <p class="warning">Use only sources you are authorised to access. Do not include API keys or private credentials: your configuration is inside a shareable URL.</p>
+      <div class="actions"><button class="primary" type="submit" id="generate">Generate Stremio link</button><button class="secondary" type="button" id="previewButton">Inspect stream rankings</button></div>
+    </form>
+    <aside class="side">
+      <section class="panel output">
+        <h2>3. Install in Stremio</h2>
+        <p class="muted">Generate your link, then install it in Stremio's Add-ons section.</p>
+        <label>Stremio manifest URL<input id="manifestUrl" readonly placeholder="Generate a link first"></label>
+        <div class="actions vertical">
+          <button type="button" id="copyManifest" class="primary" disabled>Copy manifest URL</button>
+          <button type="button" id="install" class="secondary" disabled>Open in Stremio</button>
+        </div>
+        <p class="hint">If the app does not open automatically, paste the copied URL into Stremio's add-on installation field.</p>
+        <p class="warning">Changing settings creates a new URL. Remove the old Smart Play installation before installing the replacement.</p>
+      </section>
+      <section class="panel">
+        <h2>Edit an existing profile</h2>
+        <p class="muted">Paste an earlier Smart Play manifest URL to recover its settings. Nothing is stored in a database.</p>
+        <label>Previous manifest URL<input id="existingUrl" placeholder="https://…/p/…/manifest.json"></label>
+        <button class="secondary" id="loadExisting" type="button">Load settings</button>
+      </section>
+      <section class="panel">
+        <h2>Test live results</h2>
+        <p class="muted">Test a title against the configured sources. This only checks reported metadata, not actual playback.</p>
+        <label>IMDb ID<input id="testId" value="tt1757678" placeholder="tt1757678"></label>
+        <button class="secondary" id="testLive" type="button">Check available streams</button>
+        <div class="results" id="results" aria-live="polite"></div>
+      </section>
+    </aside>
+  </div>
+  <section class="panel preview" id="previewPanel" hidden>
+    <h2>Stream ranking preview</h2>
+    <p class="muted">Upload Torrentio JSON for an offline comparison. No external stream fetch is needed.</p>
+    <div class="columns">
+      <label>Select JSON file<input id="jsonFile" type="file" accept=".json,application/json"></label>
+      <label>Film length in minutes<input id="runtimeMinutes" type="number" min="10" max="400" value="195"></label>
+    </div>
+    <label>Or paste stream JSON<textarea id="jsonInput" rows="5" spellcheck="false"></textarea></label>
+    <button class="secondary" id="runPreview" type="button">Rank these streams</button>
+    <div id="previewResults" class="results" aria-live="polite"></div>
+  </section>
+</main>
+<script src="/app.js" defer></script>
+</body>
+</html>
