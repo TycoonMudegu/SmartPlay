@@ -1,0 +1,18 @@
+{
+  "date": "2026-10-30",
+  "client": "Official Stremio Web, fresh isolated guest session",
+  "browserVersion": "156.0.4314.50",
+  "installedInIsolatedSession": true,
+  "headerCapture": "Subset exposed by Playwright request.headers(); not a complete wire-header capture",
+  "finalUrl": "https://web.stremio.com/#/addons",
+  "requests": [
+    {
+      "method": "GET",
+      "url": "https://smartplay-639901963666.africa-south1.run.app/manifest.json",
+      "headers": {
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36 Edg/156.0.0.0",
+        "referer": "https://web.stremio.com/"
+      }
+    }
+  ]
+}

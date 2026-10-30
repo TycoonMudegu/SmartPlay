@@ -55,11 +55,11 @@ The implementation therefore uses a 5 Mbps **average bitrate ceiling**, a 1080p 
 
 ## HTTP inspection and validation boundary
 
-Direct requests to the existing service returned `/manifest.json` → 404 and `/api/info` → 200 with v0.2 household-profile defaults before this change. This confirms the universal route needed implementation, not that current client headers had been inspected.
+Direct requests to the existing service returned `/manifest.json` → 404 and `/api/info` → 200 with v0.2 household-profile defaults before this change. After the repository was committed and deployed through the existing GitHub connection, the live manifest returned 200 with v0.3.0, CORS preflight succeeded and a film request returned one structurally valid stream. These checks used a Node HTTP client, not a Stremio player. See [validation results](validation.md).
 
 The new server can observe an allowlist of the **actual incoming** headers with `LOG_REQUEST_HEADERS=1`. Automated HTTP tests verify that observation against controlled Node requests, omit sensitive fields and show detection remains unknown even when a request contains speculative capability headers. They also verify encoded series IDs and the one-stream response contract. General synthetic fixtures are used following the clarification that an Avatar-specific fixture is unnecessary.
 
-No Android TV, desktop or Stremio Web session was running locally, and no Cloud Run log connection was available. **Production Stremio request captures, actual media decoding and viewer throughput remain unverified.** The README contains the exact deployment/log-reading procedure to complete those captures. Any controlled local observation artifact is explicitly labeled as a Node client, never as a Stremio capture.
+A subsequent follow-up used the official Stremio Web client in a fresh isolated Edge guest session. It fetched the live manifest and successfully installed Smart Play. A [client request observation](stremio-web-observation.json) records the request and a header subset; it is explicitly identified as a headless browser session. This confirms that the live manifest is accepted by Stremio Web and that cross-origin fetching works in that clean session. It does not identify why installation fails in the user's browser session. No Android TV or desktop session or Cloud Run container-log access was available. **Native client captures, actual media decoding and viewer throughput remain unverified.** The README contains the deployment/log-reading procedure to complete those captures. Controlled Node observations are labeled separately.
 
 ## What requires Stremio client changes
 

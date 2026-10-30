@@ -4,13 +4,13 @@ One universal Stremio add-on installation. No household profiles, device setting
 
 ## Install
 
-After deploying this version to the existing Cloud Run service, install:
+Install the universal manifest:
 
 **https://smartplay-639901963666.africa-south1.run.app/manifest.json**
 
 Paste that link into Stremio's Add-ons search field and select Install. Every family member uses the same link. Alternatively, open the service homepage and select **Open in Stremio**. Open a film or episode and choose **▶ Play** under Smart Play. Stremio controls the film-page Play button; an add-on cannot automatically start every film.
 
-Deployment status when this change was prepared: the production `/manifest.json` returned HTTP 404 and `/api/info` returned v0.2 profile defaults. The URL above becomes usable only after redeployment. The local implementation and automated tests do not establish production playback availability.
+Live verification on 30 October 2026: the production manifest returns HTTP 200 with version 0.3.0, browser preflight succeeds, and a live film metadata request returns one structurally valid stream. GitHub changes trigger deployment to the existing service. See the [validation results](docs/validation.md). Actual media playback and per-device compatibility remain separate checks.
 
 ## Run locally
 
@@ -108,7 +108,7 @@ gcloud run services update smartplay --region africa-south1 --update-env-vars LO
 
 Observation logs include User-Agent, Accept, Origin, selected client hints if present, and the **names** of `X-Stremio-*` headers. They omit IP addresses, authorization, cookies, full request URLs, query strings and profile tokens. User-Agent can itself contain a device model. No per-device record is stored. Cloud Run's own request logging has its own retention and fields; see [Cloud Run logging](https://docs.cloud.google.com/run/docs/logging).
 
-Actual production client captures were not available during local development: this workstation had no `gcloud` installation or connected Cloud Run log access, and no running Stremio client. Automated tests exercise observation using controlled Node HTTP requests, clearly identified as such.
+Cloud Run container logs were not accessible from this workstation. A follow-up check loaded the official Stremio Web client in a fresh isolated Edge guest session, observed its request to the live manifest and successfully installed Smart Play in that temporary session. The [request observation](docs/stremio-web-observation.json) records a header subset. Actual Android TV and desktop requests remain unverified. Automated unit tests exercise server-side observation using controlled Node HTTP requests, clearly identified as such.
 
 ## API and compatibility
 
